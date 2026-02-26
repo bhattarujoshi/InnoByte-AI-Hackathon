@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EduVerse — My Dashboard</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="bg-orbs">
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+</div>
+
+<button class="hamburger" id="hamburger" onclick="toggleSidebar()">
+  <span></span><span></span><span></span>
+</button>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="logo" onclick="location.href='index.html'">
+      <div class="logo-mark">EduVerse</div>
+      <div class="logo-sub">Student Portal</div>
+    </div>
+    <nav class="nav">
+      <div class="nav-label">Main</div>
+      <a class="nav-item" href="index.html" data-page="browse">
+        <span class="nav-icon">🔭</span> Browse Courses
+      </a>
+      <a class="nav-item active" href="dashboard.html" data-page="dashboard">
+        <span class="nav-icon">📊</span> My Dashboard
+        <span class="nav-badge" id="dash-badge">0</span>
+      </a>
+      <a class="nav-item" href="achievements.html" data-page="achievements">
+        <span class="nav-icon">🏆</span> Achievements
+        <span class="nav-badge" id="achieve-badge">0</span>
+      </a>
+      <div class="nav-label" style="margin-top:16px">Account</div>
+      <a class="nav-item" href="#" onclick="showToast('Settings coming soon!');return false">
+        <span class="nav-icon">⚙️</span> Settings
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-card">
+        <div class="avatar">AK</div>
+        <div>
+          <div class="user-name">Alex Kim</div>
+          <div class="user-role">BSc Computer Science</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="page-header">
+      <div>
+        <div class="page-title">My Dashboard</div>
+        <div class="page-sub">Track your enrolled subjects and progress</div>
+      </div>
+      <a href="index.html" style="padding:10px 22px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#8b5cf6);color:white;text-decoration:none;font-weight:600;font-size:0.9rem;font-family:'DM Sans',sans-serif;transition:opacity 0.2s" onmouseover="this.style.opacity=0.85" onmouseout="this.style.opacity=1">+ Browse More</a>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-icon">📖</div>
+        <div class="stat-val" id="dash-count">0</div>
+        <div class="stat-label">Active Subjects</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🎓</div>
+        <div class="stat-val" id="dash-credits">0</div>
+        <div class="stat-label">Total Credits</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">⏱️</div>
+        <div class="stat-val" id="dash-hours">0h</div>
+        <div class="stat-label">Study Hours</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">📈</div>
+        <div class="stat-val" id="dash-progress">0%</div>
+        <div class="stat-label">Avg Progress</div>
+      </div>
+    </div>
+
+    <!-- QUICK LINKS -->
+    <div class="section-title" style="margin-bottom:16px">Quick Access</div>
+    <div class="quick-cards" style="margin-bottom:32px">
+      <a class="quick-card" href="index.html">
+        <div class="quick-card-icon">🔭</div>
+        <div class="quick-card-title">Browse Courses</div>
+        <div class="quick-card-sub">Explore 12 available courses</div>
+      </a>
+      <a class="quick-card" href="achievements.html">
+        <div class="quick-card-icon">🏆</div>
+        <div class="quick-card-title">View Achievements</div>
+        <div class="quick-card-sub" id="quick-achieve-sub">0 badges unlocked</div>
+      </a>
+      <a class="quick-card" href="index.html" style="background:linear-gradient(135deg,rgba(108,99,255,0.08),var(--card-bg))">
+        <div class="quick-card-icon">📅</div>
+        <div class="quick-card-title">Schedule</div>
+        <div class="quick-card-sub">View your timetable</div>
+      </a>
+    </div>
+
+    <!-- CATEGORY BREAKDOWN -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:32px" id="category-breakdown"></div>
+
+    <!-- ENROLLED LIST -->
+    <div class="section-title">Registered Subjects</div>
+    <div class="enrolled-list" id="enrolled-list"></div>
+  </main>
+</div>
+
+<div id="toast-container" style="position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:10px"></div>
+
+<script src="shared.js"></script>
+<script>
+function dropCourse(id) {
+  const enrolled = getEnrolled();
+  const prog = getProgress();
+  const c = COURSES.find(x => x.id === id);
+  enrolled.delete(id);
+  delete prog[id];
+  saveEnrolled(enrolled);
+  saveProgress(prog);
+  showToast(`Dropped: ${c.title}`, true);
+  renderDashboard();
+}
+
+function renderCategoryBreakdown(enrolled) {
+  const cats = ['Science','Technology','Arts','Business'];
+  const colors = { Science:'#6c63ff', Technology:'#43e97b', Arts:'#ff6584', Business:'#f7971e' };
+  const icons  = { Science:'🔬', Technology:'💻', Arts:'🎨', Business:'💼' };
+  const container = document.getElementById('category-breakdown');
+  container.innerHTML = '';
+  cats.forEach(cat => {
+    const count = [...enrolled].filter(id => COURSES.find(c=>c.id===id)?.cat===cat).length;
+    const total = COURSES.filter(c=>c.cat===cat).length;
+    const pct = Math.round(count/total*100);
+    const div = document.createElement('div');
+    div.style.cssText = `background:var(--card-bg);border:1px solid var(--border);border-radius:16px;padding:20px 22px;transition:transform 0.2s`;
+    div.onmouseover = ()=>div.style.transform='translateY(-2px)';
+    div.onmouseout  = ()=>div.style.transform='';
+    div.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:1.3rem">${icons[cat]}</span>
+          <span style="font-family:'Syne',sans-serif;font-weight:700;font-size:0.95rem">${cat}</span>
+        </div>
+        <span style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.1rem;color:${colors[cat]}">${count}/${total}</span>
+      </div>
+      <div style="height:6px;background:var(--surface2);border-radius:10px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;border-radius:10px;background:${colors[cat]};transition:width 1s ease"></div>
+      </div>
+      <div style="font-size:0.72rem;color:var(--muted);margin-top:6px">${pct}% enrolled</div>`;
+    container.appendChild(div);
+  });
+}
+
+function renderDashboard() {
+  const enrolled = getEnrolled();
+  const prog = getProgress();
+
+  // Stats
+  const count = enrolled.size;
+  const totalCredits = [...enrolled].reduce((s,id)=>s+(COURSES.find(c=>c.id===id)?.credits||0),0);
+  const avgProg = count>0 ? Math.round(Object.values(prog).reduce((a,b)=>a+b,0)/count) : 0;
+  const xp = calcXP(enrolled);
+  const earnedBadges = BADGES.filter(b=>b.cond(enrolled,xp)).length;
+
+  document.getElementById('dash-count').textContent    = count;
+  document.getElementById('dash-credits').textContent  = totalCredits;
+  document.getElementById('dash-hours').textContent    = (count*3)+'h';
+  document.getElementById('dash-progress').textContent = avgProg+'%';
+  document.getElementById('quick-achieve-sub').textContent = `${earnedBadges} badges unlocked`;
+  refreshNavBadges();
+  renderCategoryBreakdown(enrolled);
+
+  // Enrolled list
+  const list = document.getElementById('enrolled-list');
+  if (count === 0) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <div class="icon">🎒</div>
+        <h3>No courses yet</h3>
+        <p>Head to <a href="index.html">Browse Courses</a> to get started!</p>
+      </div>`;
+    return;
+  }
+  list.innerHTML = '';
+  [...enrolled].forEach((id, i) => {
+    const c = COURSES.find(x=>x.id===id);
+    const p = prog[id]||0;
+    const card = document.createElement('div');
+    card.className = 'enrolled-card';
+    card.style.animationDelay = (i*0.06)+'s';
+    card.innerHTML = `
+      <div class="enrolled-icon" style="background:${c.color}">${c.icon}</div>
+      <div class="enrolled-info">
+        <div class="enrolled-name">${c.title}</div>
+        <div class="enrolled-cat">${c.cat} · ${c.level} · ${c.credits} Credits</div>
+        <div class="progress-wrap">
+          <div class="progress-label"><span>Progress</span><span>${p}%</span></div>
+          <div class="progress-bar"><div class="progress-fill" style="width:${p}%"></div></div>
+        </div>
+      </div>
+      <div class="enrolled-actions">
+        <button class="btn-sm btn-continue" onclick="showToast('Opening ${c.title}...')">Continue ▶</button>
+        <button class="btn-sm btn-drop" onclick="dropCourse(${id})">Drop</button>
+      </div>`;
+    list.appendChild(card);
+  });
+}
+
+function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
+
+// Init
+renderDashboard();
+</script>
+</body>
+</html>

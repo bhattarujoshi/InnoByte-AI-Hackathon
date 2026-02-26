@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EduVerse — Achievements</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="bg-orbs">
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+</div>
+
+<button class="hamburger" id="hamburger" onclick="toggleSidebar()">
+  <span></span><span></span><span></span>
+</button>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="logo" onclick="location.href='index.html'">
+      <div class="logo-mark">EduVerse</div>
+      <div class="logo-sub">Student Portal</div>
+    </div>
+    <nav class="nav">
+      <div class="nav-label">Main</div>
+      <a class="nav-item" href="index.html" data-page="browse">
+        <span class="nav-icon">🔭</span> Browse Courses
+      </a>
+      <a class="nav-item" href="dashboard.html" data-page="dashboard">
+        <span class="nav-icon">📊</span> My Dashboard
+        <span class="nav-badge" id="dash-badge">0</span>
+      </a>
+      <a class="nav-item active" href="achievements.html" data-page="achievements">
+        <span class="nav-icon">🏆</span> Achievements
+        <span class="nav-badge" id="achieve-badge">0</span>
+      </a>
+      <div class="nav-label" style="margin-top:16px">Account</div>
+      <a class="nav-item" href="#" onclick="showToast('Settings coming soon!');return false">
+        <span class="nav-icon">⚙️</span> Settings
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-card">
+        <div class="avatar">AK</div>
+        <div>
+          <div class="user-name">Alex Kim</div>
+          <div class="user-role">BSc Computer Science</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Achievements</div>
+        <div class="page-sub">Unlock badges, earn XP, and climb the leaderboard</div>
+      </div>
+      <a href="index.html" style="padding:10px 22px;border-radius:12px;background:var(--surface);border:1px solid var(--border);color:var(--text);text-decoration:none;font-weight:600;font-size:0.9rem;font-family:'DM Sans',sans-serif">🔭 Browse Courses</a>
+    </div>
+
+    <!-- XP BANNER -->
+    <div class="xp-banner">
+      <div class="xp-ring" id="xp-ring" style="--pct:0%">
+        <div class="xp-ring-inner">
+          <div id="xp-level-num" style="font-size:1.1rem">1</div>
+          <div style="font-size:0.55rem;color:var(--muted)">LEVEL</div>
+        </div>
+      </div>
+      <div class="xp-info">
+        <div class="xp-level" id="xp-title">Freshman Explorer</div>
+        <div class="xp-sub" id="xp-sub-text">Enroll in courses to earn XP and unlock achievements!</div>
+        <div>
+          <div class="xp-bar-label"><span id="xp-cur">0 XP</span><span id="xp-next">500 XP to next level</span></div>
+          <div class="xp-bar"><div class="xp-bar-fill" id="xp-bar-fill" style="width:0%"></div></div>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">Recent Badges</div>
+        <div class="xp-badges-preview" id="xp-recent-badges">
+          <div class="xp-badge-mini">🔒</div>
+          <div class="xp-badge-mini">🔒</div>
+          <div class="xp-badge-mini">🔒</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TABS -->
+    <div class="achieve-tabs">
+      <button class="achieve-tab active" onclick="switchTab(this,'badges')">🏅 Badges</button>
+      <button class="achieve-tab" onclick="switchTab(this,'milestones')">🎯 Milestones</button>
+      <button class="achieve-tab" onclick="switchTab(this,'leaderboard')">🏆 Leaderboard</button>
+    </div>
+
+    <div id="tab-badges"><div class="badges-grid" id="badges-grid"></div></div>
+    <div id="tab-milestones" style="display:none"><div class="milestones-list" id="milestones-list"></div></div>
+    <div id="tab-leaderboard" style="display:none"><div class="leaderboard-list" id="leaderboard-list"></div></div>
+  </main>
+</div>
+
+<div id="toast-container" style="position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:10px"></div>
+
+<script src="shared.js"></script>
+<script>
+
+const MILESTONES = [
+  { icon:'🎯', name:'First Steps',        desc:'Enroll in your first course',       goal:1,   getVal:(e)=>e.size,          unit:'courses'    },
+  { icon:'📖', name:'Active Learner',     desc:'Enroll in 5 courses',               goal:5,   getVal:(e)=>e.size,          unit:'courses'    },
+  { icon:'🏫', name:'Full Schedule',      desc:'Enroll in 10 courses',              goal:10,  getVal:(e)=>e.size,          unit:'courses'    },
+  { icon:'🎓', name:'Complete Scholar',   desc:'Enroll in all 12 courses',          goal:12,  getVal:(e)=>e.size,          unit:'courses'    },
+  { icon:'💡', name:'XP Collector',       desc:'Earn 200 XP',                       goal:200, getVal:(e)=>calcXP(e),       unit:'XP'         },
+  { icon:'⚡', name:'XP Master',          desc:'Earn 800 XP',                       goal:800, getVal:(e)=>calcXP(e),       unit:'XP'         },
+  { icon:'🌍', name:'Category Explorer',  desc:'Enroll in all 4 categories',        goal:4,   getVal:(e)=>new Set([...e].map(id=>COURSES.find(c=>c.id===id)?.cat)).size, unit:'categories' },
+  { icon:'🏆', name:'Badge Hunter',       desc:'Unlock 5 badges',                   goal:5,   getVal:(e)=>BADGES.filter(b=>b.cond(e,calcXP(e))).length, unit:'badges' },
+];
+
+const LEADERBOARD_DATA = [
+  { name:'Sarah Chen',  initials:'SC', color:'linear-gradient(135deg,#6c63ff,#9b5de5)', course:'Machine Learning',  xp:1840 },
+  { name:'Marcus Webb', initials:'MW', color:'linear-gradient(135deg,#ff6584,#ff8fab)', course:'Full-Stack Dev',     xp:1620 },
+  { name:'Priya Nair',  initials:'PN', color:'linear-gradient(135deg,#43e97b,#38f9d7)', course:'Astrophysics',       xp:1455 },
+  { name:'Liam Torres', initials:'LT', color:'linear-gradient(135deg,#f7971e,#ffd200)', course:'Cybersecurity',      xp:1290 },
+  { name:'Alex Kim',    initials:'AK', color:'linear-gradient(135deg,#6c63ff,#ff6584)', course:'—', xp:0, you:true  },
+  { name:'Yuki Tanaka', initials:'YT', color:'linear-gradient(135deg,#4facfe,#00f2fe)', course:'UI/UX Design',       xp:980  },
+  { name:'Amara Osei',  initials:'AO', color:'linear-gradient(135deg,#a18cd1,#fbc2eb)', course:'Creative Writing',   xp:840  },
+  { name:'Jake Rivera', initials:'JR', color:'linear-gradient(135deg,#fd746c,#ff9068)', course:'Python',             xp:720  },
+];
+
+function renderAchievements() {
+  const enrolled = getEnrolled();
+  const xp = calcXP(enrolled);
+  const lvl = getCurrentLevel(xp);
+  const nextLvl = LEVELS.find(l => l.xpNeeded > xp);
+  const pct = nextLvl ? Math.round((xp - lvl.xpNeeded) / (nextLvl.xpNeeded - lvl.xpNeeded) * 100) : 100;
+
+  // XP Banner
+  document.getElementById('xp-level-num').textContent = lvl.level;
+  document.getElementById('xp-title').textContent = lvl.title;
+  document.getElementById('xp-sub-text').textContent = nextLvl
+    ? `${nextLvl.xpNeeded - xp} XP more to reach Level ${nextLvl.level} — keep going!`
+    : '🎉 You have reached the maximum level — Grand Sage!';
+  document.getElementById('xp-cur').textContent = xp + ' XP';
+  document.getElementById('xp-next').textContent = nextLvl ? (nextLvl.xpNeeded - xp) + ' XP to next level' : 'MAX LEVEL';
+  document.getElementById('xp-bar-fill').style.width = pct + '%';
+  document.getElementById('xp-ring').style.setProperty('--pct', pct + '%');
+
+  // Recent badges
+  const earned = BADGES.filter(b => b.cond(enrolled, xp));
+  document.getElementById('achieve-badge').textContent = earned.length;
+  document.getElementById('dash-badge').textContent = enrolled.size;
+  const recent = earned.slice(-3);
+  const previewEl = document.getElementById('xp-recent-badges');
+  previewEl.innerHTML = '';
+  for (let i = 0; i < 3; i++) {
+    const el = document.createElement('div');
+    el.className = 'xp-badge-mini' + (recent[i] ? ' earned' : '');
+    el.textContent = recent[i] ? recent[i].icon : '🔒';
+    previewEl.appendChild(el);
+  }
+
+  // Badges
+  const grid = document.getElementById('badges-grid');
+  grid.innerHTML = '';
+  BADGES.forEach((b, i) => {
+    const isEarned = b.cond(enrolled, xp);
+    const card = document.createElement('div');
+    card.className = `badge-card ${b.rarity} ${isEarned ? '' : 'locked'}`;
+    card.style.animationDelay = (i * 0.04) + 's';
+    card.innerHTML = `
+      ${isEarned ? '<div class="earned-stamp">✓</div>' : ''}
+      <div class="badge-icon-wrap ${b.rarity}">
+        ${b.icon}
+        <span class="badge-rarity rarity-${b.rarity}">${b.rarity}</span>
+      </div>
+      <div class="badge-name">${b.name}</div>
+      <div class="badge-desc">${b.desc}</div>
+      <div class="badge-xp">+${b.xp} XP</div>
+      ${isEarned
+        ? '<div style="font-size:0.72rem;color:var(--accent3);margin-top:4px;font-weight:600">✓ Unlocked!</div>'
+        : '<div style="font-size:0.72rem;color:var(--muted);margin-top:4px">🔒 Locked</div>'}`;
+    grid.appendChild(card);
+  });
+
+  // Milestones
+  const mlist = document.getElementById('milestones-list');
+  mlist.innerHTML = '';
+  MILESTONES.forEach((m, i) => {
+    const cur  = Math.min(m.getVal(enrolled), m.goal);
+    const pct2 = Math.round(cur / m.goal * 100);
+    const done = cur >= m.goal;
+    const card = document.createElement('div');
+    card.className = 'milestone-card' + (done ? ' done' : '');
+    card.style.animationDelay = (i * 0.06) + 's';
+    card.innerHTML = `
+      <div class="milestone-icon-wrap ${done ? 'done' : 'pending'}">${m.icon}</div>
+      <div class="milestone-info">
+        <div class="milestone-name">${m.name}</div>
+        <div class="milestone-desc">${m.desc} — <strong>${cur}/${m.goal} ${m.unit}</strong></div>
+        <div class="milestone-bar">
+          <div class="milestone-fill ${done?'done':'pending'}" style="width:${pct2}%"></div>
+        </div>
+      </div>
+      <div class="milestone-right">
+        <div class="milestone-pct ${done?'done':''}">${done ? '✓' : pct2+'%'}</div>
+        <div class="milestone-xp">${done ? 'Complete!' : m.unit}</div>
+      </div>`;
+    mlist.appendChild(card);
+  });
+
+  // Leaderboard
+  const sortedLB = [...LEADERBOARD_DATA]
+    .map(p => p.you ? { ...p, xp } : p)
+    .sort((a, b) => b.xp - a.xp);
+  const lbList = document.getElementById('leaderboard-list');
+  lbList.innerHTML = '';
+  sortedLB.forEach((p, i) => {
+    const rankClass = i===0?'gold':i===1?'silver':i===2?'bronze':'';
+    const rankEmoji = i===0?'🥇':i===1?'🥈':i===2?'🥉':'';
+    const card = document.createElement('div');
+    card.className = 'leader-card' + (p.you ? ' you' : '');
+    card.style.animationDelay = (i * 0.05) + 's';
+    card.innerHTML = `
+      <div class="leader-rank ${rankClass}">${rankEmoji || ('#'+(i+1))}</div>
+      <div class="leader-avatar" style="background:${p.color}">${p.initials}</div>
+      <div class="leader-info">
+        <div class="leader-name">${p.name}${p.you
+          ? ' <span style="font-size:0.7rem;color:var(--accent);font-weight:700;background:rgba(108,99,255,0.15);padding:1px 7px;border-radius:10px">YOU</span>'
+          : ''}</div>
+        <div class="leader-course">${p.you && p.xp > 0
+          ? getEnrolled().size + ' courses enrolled'
+          : p.you ? 'Enroll in courses to earn XP!'
+          : p.course}</div>
+      </div>
+      <div class="leader-xp">${p.xp.toLocaleString()} XP</div>`;
+    lbList.appendChild(card);
+  });
+}
+
+function switchTab(btn, tab) {
+  document.querySelectorAll('.achieve-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  ['badges','milestones','leaderboard'].forEach(t => {
+    document.getElementById('tab-'+t).style.display = t===tab ? 'block' : 'none';
+  });
+}
+
+function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
+
+// Init
+renderAchievements();
+</script>
+</body>
+</html>

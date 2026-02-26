@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EduVerse — Browse Courses</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="bg-orbs">
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+</div>
+
+<button class="hamburger" id="hamburger" onclick="toggleSidebar()">
+  <span></span><span></span><span></span>
+</button>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="logo" onclick="location.href='index.html'">
+      <div class="logo-mark">EduVerse</div>
+      <div class="logo-sub">Student Portal</div>
+    </div>
+    <nav class="nav">
+      <div class="nav-label">Main</div>
+      <a class="nav-item active" href="index.html" data-page="browse">
+        <span class="nav-icon">🔭</span> Browse Courses
+      </a>
+      <a class="nav-item" href="dashboard.html" data-page="dashboard">
+        <span class="nav-icon">📊</span> My Dashboard
+        <span class="nav-badge" id="dash-badge">0</span>
+      </a>
+      <a class="nav-item" href="achievements.html" data-page="achievements">
+        <span class="nav-icon">🏆</span> Achievements
+        <span class="nav-badge" id="achieve-badge">0</span>
+      </a>
+      <div class="nav-label" style="margin-top:16px">Account</div>
+      <a class="nav-item" href="#" onclick="showToast('Settings coming soon!');return false">
+        <span class="nav-icon">⚙️</span> Settings
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-card">
+        <div class="avatar">AK</div>
+        <div>
+          <div class="user-name">Alex Kim</div>
+          <div class="user-role">BSc Computer Science</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Explore Courses</div>
+        <div class="page-sub">Discover and enroll in subjects that interest you</div>
+      </div>
+      <div class="search-bar">
+        <span>🔍</span>
+        <input type="text" id="search-input" placeholder="Search courses..." oninput="renderCourses()">
+      </div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-icon">📚</div>
+        <div class="stat-val">12</div>
+        <div class="stat-label">Available Courses</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">✅</div>
+        <div class="stat-val" id="stat-enrolled">0</div>
+        <div class="stat-label">Enrolled</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🎓</div>
+        <div class="stat-val">4</div>
+        <div class="stat-label">Categories</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">⭐</div>
+        <div class="stat-val">4.8</div>
+        <div class="stat-label">Avg Rating</div>
+      </div>
+    </div>
+
+    <div class="filters">
+      <button class="filter-btn active" onclick="setFilter(this,'all')">All Courses</button>
+      <button class="filter-btn" onclick="setFilter(this,'Science')">🔬 Science</button>
+      <button class="filter-btn" onclick="setFilter(this,'Technology')">💻 Technology</button>
+      <button class="filter-btn" onclick="setFilter(this,'Arts')">🎨 Arts</button>
+      <button class="filter-btn" onclick="setFilter(this,'Business')">💼 Business</button>
+    </div>
+
+    <div class="courses-grid" id="courses-grid"></div>
+  </main>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div></div>
+      <button class="modal-close" onclick="closeModalBtn()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<div id="toast-container" style="position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:10px"></div>
+
+<script src="shared.js"></script>
+<script>
+let activeFilter = 'all';
+let activeModalId = null;
+
+function renderCourses() {
+  const enrolled = getEnrolled();
+  const grid = document.getElementById('courses-grid');
+  const q = document.getElementById('search-input').value.toLowerCase();
+  const filtered = COURSES.filter(c => {
+    const matchCat = activeFilter === 'all' || c.cat === activeFilter;
+    const matchQ   = c.title.toLowerCase().includes(q) || c.cat.toLowerCase().includes(q) || c.desc.toLowerCase().includes(q);
+    return matchCat && matchQ;
+  });
+
+  grid.innerHTML = filtered.length === 0 ? `
+    <div class="empty-state" style="grid-column:1/-1">
+      <div class="icon">🔍</div><h3>No courses found</h3><p>Try a different search or category.</p>
+    </div>` : '';
+
+  filtered.forEach((c, i) => {
+    const isEnrolled = enrolled.has(c.id);
+    const card = document.createElement('div');
+    card.className = 'course-card';
+    card.style.animationDelay = (i * 0.05) + 's';
+    card.innerHTML = `
+      <div class="course-banner" style="background:${c.color}">
+        ${c.icon}
+        ${c.badge ? `<span class="course-badge badge-${c.badge}">${c.badge==='new'?'🆕 New':c.badge==='pop'?'🔥 Popular':'🆓 Free'}</span>` : ''}
+      </div>
+      <div class="course-body">
+        <div class="course-cat">${c.cat}</div>
+        <div class="course-title">${c.title}</div>
+        <div class="course-desc">${c.desc.substring(0,100)}...</div>
+        <div class="course-meta">
+          <span class="meta-item">⏱️ ${c.duration}</span>
+          <span class="meta-item">📊 ${c.level}</span>
+          <span class="meta-item">⭐ ${c.rating}</span>
+          <span class="meta-item">👥 ${c.students.toLocaleString()}</span>
+        </div>
+        <div class="course-footer">
+          <div class="course-price ${c.price==='Free'?'free':''}">${c.price}</div>
+          <div style="display:flex;gap:8px">
+            <button class="enroll-btn outline" onclick="openModal(${c.id});event.stopPropagation()">Details</button>
+            <button class="enroll-btn ${isEnrolled?'enrolled':'primary'}" onclick="toggleEnroll(${c.id});event.stopPropagation()">
+              ${isEnrolled ? '✓ Enrolled' : 'Enroll'}
+            </button>
+          </div>
+        </div>
+      </div>`;
+    card.onclick = () => openModal(c.id);
+    grid.appendChild(card);
+  });
+
+  document.getElementById('stat-enrolled').textContent = enrolled.size;
+  refreshNavBadges();
+}
+
+function setFilter(btn, cat) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  activeFilter = cat;
+  renderCourses();
+}
+
+function toggleEnroll(id) {
+  const enrolled = getEnrolled();
+  const prog = getProgress();
+  const c = COURSES.find(x => x.id === id);
+  if (enrolled.has(id)) {
+    enrolled.delete(id);
+    delete prog[id];
+    showToast(`Dropped: ${c.title}`, true);
+  } else {
+    enrolled.add(id);
+    prog[id] = Math.floor(Math.random() * 40) + 5;
+    showToast(`Enrolled in: ${c.title}`);
+  }
+  saveEnrolled(enrolled);
+  saveProgress(prog);
+  renderCourses();
+  if (activeModalId === id) openModal(id);
+}
+
+function openModal(id) {
+  const c = COURSES.find(x => x.id === id);
+  activeModalId = id;
+  const isEnrolled = getEnrolled().has(id);
+  document.getElementById('modal-body').innerHTML = `
+    <div class="modal-banner" style="background:${c.color}">${c.icon}</div>
+    <div class="modal-cat">${c.cat}</div>
+    <div class="modal-title">${c.title}</div>
+    <div class="modal-desc">${c.desc}</div>
+    <div class="modal-details">
+      <div class="detail-item"><div class="detail-label">Duration</div><div class="detail-val">⏱️ ${c.duration}</div></div>
+      <div class="detail-item"><div class="detail-label">Level</div><div class="detail-val">📊 ${c.level}</div></div>
+      <div class="detail-item"><div class="detail-label">Credits</div><div class="detail-val">🎓 ${c.credits} credits</div></div>
+      <div class="detail-item"><div class="detail-label">Students</div><div class="detail-val">👥 ${c.students.toLocaleString()}</div></div>
+      <div class="detail-item"><div class="detail-label">Rating</div><div class="detail-val">⭐ ${c.rating}/5.0</div></div>
+      <div class="detail-item"><div class="detail-label">Price</div><div class="detail-val">${c.price}</div></div>
+    </div>
+    <button class="modal-enroll-btn ${isEnrolled?'enrolled':''}" onclick="toggleEnroll(${id})">
+      ${isEnrolled ? '✓ Already Enrolled — Click to Drop' : `Enroll Now — ${c.price}`}
+    </button>`;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function closeModal(e) { if (e.target === document.getElementById('modal-overlay')) closeModalBtn(); }
+function closeModalBtn() { document.getElementById('modal-overlay').classList.remove('open'); activeModalId = null; }
+function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
+
+// Init
+renderCourses();
+refreshNavBadges();
+</script>
+</body>
+</html>
